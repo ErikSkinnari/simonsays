@@ -6,11 +6,6 @@
 const uint8_t clockPin = 2;
 const uint8_t dataPin = 3;
 
-// const short button0 = 7;
-// const short button1 = 6;
-// const short button2 = 5;
-// const short button3 = 4;
-
 const short numberOfPixels = 4;
 
 const short D4 = 9;
@@ -30,29 +25,6 @@ int lastInputStates[4];
 bool inputFlags[4];
 long lastDebounceTimes[4] = { 0, 0, 0, 0 };
 
-// int inputState0;
-// int lastInputState0 = HIGH;
-// bool inputFlag0 = LOW;
-// long lastDebounceTime0 = 0;
-
-// int inputState1;
-// int lastInputState1 = HIGH;
-// bool inputFlag1 = LOW;
-// long lastDebounceTime1 = 0;
-
-// int inputState2;
-// int lastInputState2 = HIGH;
-// bool inputFlag2 = LOW;
-// long lastDebounceTime2 = 0;
-
-// int inputState3;
-// int lastInputState3 = HIGH;
-// bool inputFlag3 = LOW;
-// long lastDebounceTime3 = 0;
-
-
-
-
 Adafruit_WS2801 strip = Adafruit_WS2801(numberOfPixels, dataPin, clockPin);
 LiquidCrystal lcd( DISPLAY_RS, DISPLAY_ENABLE, D4, D5, D6, D7);
 
@@ -66,11 +38,6 @@ void setup()
 	{
 		pinMode(buttons[i], INPUT_PULLUP);
 	}
-
-	// pinMode(button0, INPUT_PULLUP);
-	// pinMode(button1, INPUT_PULLUP);
-	// pinMode(button2, INPUT_PULLUP);
-	// pinMode(button3, INPUT_PULLUP);
 
 	for(int i = 0; i < 4; i++) 
 	{
@@ -117,15 +84,6 @@ void loop()
 		all_on(3);
 		writeText("Button 4");
 	}
-
-	// if (inputFlag0 == false && inputFlag1 == false && inputFlag2 == false && inputFlag3 == false)
-	// {
-	// 	for (uint8_t i = 0; i < numberOfPixels; i++)
-	// 	{
-	// 		strip.setPixelColor(i, 0, 0, 0);
-	// 	}
-	// 	strip.show();
-	// }
 }
 
 void writeText(char* text) 
@@ -146,49 +104,8 @@ void buttonRead()
 			inputStates[i] = reading;
 			inputFlags[i] = inputStates[i] == LOW ? true : false;
 		}
-		lastInputStates[i] = reading;		
+		lastInputStates[i] = reading;
 	}
-
-	// int reading0 = digitalRead(button0);
-	// inputFlag0 = false;
-	// if (reading0 != lastInputState0) lastDebounceTime0 = millis();
-	// if ((millis() - lastDebounceTime0) > debounceDelay && reading0 != inputState0)
-	// {
-	// 	inputState0 = reading0;
-	// 	inputFlag0 = inputState0 == LOW ? true : false;
-	// }
-	// lastInputState0 = reading0;
-
-	// int reading1 = digitalRead(button1);
-	// inputFlag1 = false;
-	// if (reading1 != lastInputState1) lastDebounceTime1 = millis();
-	// if ((millis() - lastDebounceTime1) > debounceDelay && reading1 != inputState1)
-	// {
-	// 	inputState1 = reading1;
-	// 	inputFlag1 = inputState1 == LOW ? true : false;
-	// }
-	// lastInputState1 = reading1;
-
-	// int reading2 = digitalRead(button2);
-	// inputFlag2 = false;
-	// if (reading2 != lastInputState2) lastDebounceTime2 = millis();
-	// if ((millis() - lastDebounceTime2) > debounceDelay && reading2 != inputState2)
-	// {
-	// 	inputState2 = reading2;
-	// 	inputFlag2 = inputState2 == LOW ? true : false;
-	// }
-	// lastInputState2 = reading2;
-	
-	// int reading3 = digitalRead(button3);
-	// inputFlag3 = false;
-	// if (reading3 != lastInputState3) lastDebounceTime3 = millis();
-
-	// if ((millis() - lastDebounceTime3) > debounceDelay && reading3 != inputState3)
-	// {
-	// 	inputState3 = reading3;
-	// 	inputFlag3 = inputState3 == LOW ? true : false;
-	// }
-	// lastInputState3 = reading3;
 }
 
 void all_on(int c)
