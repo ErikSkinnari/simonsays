@@ -24,7 +24,8 @@
                 "C:/Arduino/*",
                 "C:\\Arduino\\hardware\\tools\\**",
                 "C:\\Arduino\\libraries\\**",
-                "C:\\Users\\eriks\\OneDrive\\Documents\\Arduino\\libraries\\**"
+                "C:\\Users\\eriks\\OneDrive\\Documents\\Arduino\\libraries\\**",
+                "C:\\Users\\erik\\Documents\\Arduino\\libraries\\**"
             ],
             "browse": {
                 "limitSymbolsToIncludedHeaders": true,
