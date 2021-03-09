@@ -33,7 +33,14 @@ short pattern[SIZE_OF_ARRAYS];
 short turn = 0;
 short selectedHighscore = 0;
 
-String highscores[3];
+struct highscores
+{
+	String score1;
+	String score2;
+	String score3;
+};
+
+struct highscores savedHighscores;
 
 enum State
 {
@@ -98,8 +105,12 @@ bool displayChange = true;
 
 void setup()
 {
-	randomSeed(analogRead(0));
+	savedHighscores.score1 = "000000_111";
+	savedHighscores.score2 = "111111_222";
+	savedHighscores.score3 = "222222_333";
 
+
+	randomSeed(analogRead(0));
 	randomizePattern();
 
 	state = startMenu;
@@ -139,6 +150,12 @@ void setup()
 	delay(100);
 
 	setAllPixels(OFF);
+
+	Serial.print("before loading and saving highscores.");
+	loadHighScores();
+	saveHighScores();
+	loadHighScores();
+	Serial.print("after loading and saving highscores.");
 }
 
 void loop()
@@ -322,4 +339,26 @@ void setAllPixels(ColorSelection color)
 	{
 		setPixel(i, color);
 	}
+}
+
+void saveHighScores(int addrOffset, const String &strToWrite)
+{
+  	byte len = strToWrite.length();
+  	EEPROM.write(addrOffset, len);
+  	for (int i = 0; i < len; i++)
+  	{
+  		EEPROM.write(addrOffset + 1 + i, strToWrite[i]);
+  	}
+}
+
+String loadHighScores(int addrOffset)
+{
+  	int newStrLen = EEPROM.read(addrOffset);
+  	char data[newStrLen + 1];
+  	for (int i = 0; i < newStrLen; i++)
+  	{
+    	data[i] = EEPROM.read(addrOffset + 1 + i);
+  	}
+	data[newStrLen] = '\0'; 
+	return String(data);
 }
