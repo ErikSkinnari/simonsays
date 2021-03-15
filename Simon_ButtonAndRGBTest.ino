@@ -29,10 +29,10 @@ long lastDebounceTimes[4] = {0, 0, 0, 0};
 Adafruit_WS2801 strip = Adafruit_WS2801(NO_OF_PIXELS, DATA_PIN, CLOCK_PIN);
 LiquidCrystal lcd(DISPLAY_RS, DISPLAY_ENABLE, D4, D5, D6, D7);
 
-short pattern[SIZE_OF_ARRAYS];
-short turn = 0;
+int pattern[SIZE_OF_ARRAYS];
+int turn = 0;
+int playerScore = 0;
 short selectedHighscore = 0;
-
 String savedHighscores[3];
 
 enum State
@@ -110,18 +110,12 @@ void setup()
 {
 	Serial.begin(9600);
 
-	//To set the scores the first time, uncomment this part.
-	savedHighscores[0] = "000000:000";
-	savedHighscores[1] = "111111:000";
-	savedHighscores[2] = "222222:000";
+	// TODO logic for first boot, to add 3 empty highscores.
 
-	String highscoresToSave = savedHighscores[0] + ";" + savedHighscores[1] + ";" + savedHighscores[2];
-	saveHighScores(0, highscoresToSave);
-
-	//String loadedHighscores = loadHighScores(0);
-	// savedHighscores[0] = getValue(loadedHighscores, ';', 0);
-	// savedHighscores[1] = getValue(loadedHighscores, ';', 1);
-	// savedHighscores[2] = getValue(loadedHighscores, ';', 2);
+	String loadedHighscores = loadHighScores(0);
+	savedHighscores[0] = getValue(loadedHighscores, ';', 0);
+	savedHighscores[1] = getValue(loadedHighscores, ';', 1);
+	savedHighscores[2] = getValue(loadedHighscores, ';', 2);
 
 	Serial.println(savedHighscores[0]);
 	Serial.println(savedHighscores[1]);
@@ -153,19 +147,16 @@ void setup()
 	lcd.begin(16, 2);
 
 	strip.begin();
-	// for (int i = 0; i < NO_OF_PIXELS; i++)
-	// {
-	// 	strip.setPixelColor(i, 0, 0, BRIGHTNESS);
-	// 	if (i > 0)
-	// 	{
-	// 		strip.setPixelColor(i - 1, 0, 0, 0);
-	// 	}
-	// 	strip.show();
-	// 	delay(1000);
-	// }
-	setAllPixels(RED);
-	delay(100);
-
+	for (int i = 0; i < NO_OF_PIXELS; i++)
+	{
+		strip.setPixelColor(i, 0, 0, BRIGHTNESS);
+		if (i > 0)
+		{
+			strip.setPixelColor(i - 1, 0, 0, 0);
+		}
+		strip.show();
+		delay(200);
+	}
 	setAllPixels(OFF);
 }
 
@@ -181,12 +172,7 @@ void loop()
 	}
 	else if (state == game)
 	{
-		// gamePlay();
-		enterNameDisplay(12);
-	}
-	else if (state == gameOver)
-	{
-		gameOverDisplay();
+		gamePlay();
 	}
 
 	buttonRead();
@@ -219,7 +205,7 @@ void mainMenu()
 	{
 		setAllPixels(OFF);
 		state = game;
-		displayChange = true;
+		// displayChange = true;
 	}
 
 	if (inputFlags[3] == true)
@@ -233,6 +219,7 @@ void mainMenu()
 // Display scrollable list with top 3 highscores
 void highscoreList()
 {
+	setAllPixels(OFF);
 	setPixel(0, BLUE);
 	setPixel(1, BLUE);
 	setPixel(3, BLUE);
@@ -277,28 +264,113 @@ void highscoreList()
 
 void gamePlay()
 {
-	if (displayChange)
+	turn = 0;
+
+	writeText("    New Game    ");
+	lcd.setCursor(0, 1);
+	lcd.print(" Follow pattern ");
+	delay(2000);
+
+	setAllPixels(GREEN);
+	writeText(" Press to Start ");
+
+	Serial.println("Before gamestart button press");
+
+	while (!stateChanged())
 	{
-		displayChange = false;
-		lcd.clear();
-		lcd.print("Game");
+		buttonRead();
 	}
-	if (inputFlags[3] == 1)
+
+	Serial.println("AFTER button press");
+
+	bool gameRunning = true;
+
+	while (gameRunning)
 	{
-		displayChange = true;
-		state = startMenu;
+		Serial.print("Turn #");
+		Serial.println(turn);
+		for (int i = 0; i <= turn; i++)
+		{
+			Serial.print("Pattern: " + i);
+			Serial.println(pattern[i]);
+			setPixel(pattern[i], BLUE);
+			delay(1000);
+			setAllPixels(OFF);
+		}
+
+		setAllPixels(BLUE);
+		delay(500);
+		setAllPixels(OFF);
+
+		for (int i = 0; i <= turn; i++)
+		{
+			Serial.println("Waiting for userinput");
+			buttonRead();
+			while (!stateChanged())
+			{
+				buttonRead();
+			}
+
+			Serial.println("User pressed button");
+
+			Serial.println(pattern[i]);
+
+			String output = "0: ";
+			output.concat(inputFlags[0]);
+			output.concat(" 1: ");
+			output.concat(inputFlags[1]);
+			output.concat(" 2: ");
+			output.concat(inputFlags[2]);
+			output.concat(" 3: ");
+			output.concat(inputFlags[3]);
+
+			int index = pattern[i];
+			Serial.print("Correct: ");
+			Serial.print(pattern[i]);
+			Serial.print("Entered: ");
+			Serial.println(output);
+
+			if (inputFlags[index] != 1)
+			{
+				gameRunning == false;
+			}
+		}
+
+		turn++;
 	}
+
+	gameOverDisplay();
 }
 
 void gameOverDisplay()
 {
-	// TODO Create game over menu
+	// Flash leds
+	writeText("   Game Over!   ");
+	for (int i = 0; i < 10; i++)
+	{
+		setAllPixels(RED);
+		delay(100);
+	}
+
+	// Check if highscore
+	if (playerScore > getValue(savedHighscores[2], ':', 1).toInt())
+	{
+		enterNameDisplay();
+	}
+
+	lcd.clear();
+	lcd.print("Score: " + playerScore);
+	lcd.print("Press any button");
+	while (!stateChanged())
+	{
+		buttonRead();
+	}
+
 	state = startMenu;
 }
 
-void enterNameDisplay(int score)
+void enterNameDisplay()
 {
-	// TODO add logic for entering name on new highscore
 	String name = "";
 	char newChar = 65;
 
@@ -312,6 +384,7 @@ void enterNameDisplay(int score)
 	{
 		buttonRead();
 	}
+
 	setAllPixels(OFF);
 
 	while (name.length() <= 10)
@@ -340,7 +413,7 @@ void enterNameDisplay(int score)
 		}
 
 		// Down button
-		if ((inputFlags[1] == true) && newChar > 65)
+		if ((inputFlags[1] == true) && newChar > 48)
 		{
 			newChar--;
 		}
@@ -360,7 +433,7 @@ void enterNameDisplay(int score)
 
 	String newHighscoreString = name;
 	newHighscoreString.concat(":");
-	newHighscoreString.concat(score);
+	newHighscoreString.concat(playerScore);
 
 	addScore(newHighscoreString);
 
@@ -377,13 +450,12 @@ void addScore(String newScore)
 		lcd.setCursor(0, 1);
 		lcd.print("Press red button");
 
-		while (inputFlags[3] != 1)
-		{
-			buttonRead();
-		}
+		waitForButtonPressed(3);
 	}
 
 	sortHighscores();
+	String highscoresToSave = savedHighscores[0] + ";" + savedHighscores[1] + ";" + savedHighscores[2];
+	saveHighScores(0, highscoresToSave);
 }
 
 void sortHighscores()
@@ -400,13 +472,6 @@ void sortHighscores()
 		String temp = savedHighscores[0];
 		savedHighscores[0] = savedHighscores[1];
 		savedHighscores[1] = temp;
-	}
-
-	if (getValue(savedHighscores[1], ':', 1).toInt() < getValue(savedHighscores[2], ':', 1).toInt())
-	{
-		String temp = savedHighscores[1];
-		savedHighscores[1] = savedHighscores[2];
-		savedHighscores[2] = temp;
 	}
 }
 
@@ -441,6 +506,14 @@ void buttonRead()
 			inputFlags[i] = inputStates[i] == LOW ? true : false;
 		}
 		lastInputStates[i] = reading;
+	}
+}
+
+void waitForButtonPressed(int buttonIndex)
+{
+	while (inputFlags[buttonIndex] != 1)
+	{
+		buttonRead();
 	}
 }
 
