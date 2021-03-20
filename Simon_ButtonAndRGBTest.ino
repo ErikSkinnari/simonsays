@@ -110,19 +110,16 @@ void setup()
 {
 	Serial.begin(9600);
 
-	// TODO logic for first boot, to add 3 empty highscores.
+	// To reset highscores uncomment next 2 rows.
+	// String resetHighscores = "A:0;B:0;C:0";
+	// saveHighScores(0, resetHighscores);
 
 	String loadedHighscores = loadHighScores(0);
 	savedHighscores[0] = getValue(loadedHighscores, ';', 0);
 	savedHighscores[1] = getValue(loadedHighscores, ';', 1);
 	savedHighscores[2] = getValue(loadedHighscores, ';', 2);
 
-	Serial.println(savedHighscores[0]);
-	Serial.println(savedHighscores[1]);
-	Serial.println(savedHighscores[2]);
-
 	randomSeed(analogRead(0));
-	randomizePattern();
 
 	state = startMenu;
 
@@ -174,9 +171,6 @@ void loop()
 	{
 		gamePlay();
 	}
-
-	buttonRead();
-	buttonPressed = stateChanged();
 }
 
 void randomizePattern()
@@ -201,30 +195,39 @@ void mainMenu()
 		displayChange = false;
 	}
 
-	if (inputFlags[0] == true)
+	while (true)
 	{
-		setAllPixels(OFF);
-		state = game;
-		// displayChange = true;
+		buttonRead();
+
+		if (inputFlags[0] == true)
+		{
+			setAllPixels(OFF);
+			state = game;
+			displayChange = true;
+			break;
+		}
+
+		if (inputFlags[3] == true)
+		{
+			setAllPixels(OFF);
+			state = highscore;
+			displayChange = true;
+			break;
+		}
 	}
 
-	if (inputFlags[3] == true)
-	{
-		setAllPixels(OFF);
-		state = highscore;
-		displayChange = true;
-	}
+	Serial.println("End of mainMenu()");
 }
 
 // Display scrollable list with top 3 highscores
 void highscoreList()
 {
-	setAllPixels(OFF);
-	setPixel(0, BLUE);
-	setPixel(1, BLUE);
-	setPixel(3, BLUE);
 	if (displayChange)
 	{
+		setAllPixels(OFF);
+		setPixel(0, BLUE);
+		setPixel(1, BLUE);
+		setPixel(3, BLUE);
 		lcd.clear();
 		String score = (String)(selectedHighscore + 1);
 		score.concat(".");
@@ -238,6 +241,8 @@ void highscoreList()
 		lcd.write(byte(2));
 		displayChange = false;
 	}
+
+	buttonRead();
 
 	// Up button
 	if ((inputFlags[0] == true) && selectedHighscore > 0)
@@ -264,108 +269,86 @@ void highscoreList()
 
 void gamePlay()
 {
+	randomizePattern();
 	turn = 0;
+	playerScore = 0;
 
 	writeText("    New Game    ");
 	lcd.setCursor(0, 1);
-	lcd.print(" Follow pattern ");
-	delay(2000);
-
+	lcd.print(" Press to Start ");
 	setAllPixels(GREEN);
-	writeText(" Press to Start ");
-
-	Serial.println("Before gamestart button press");
-
-	while (!stateChanged())
-	{
-		buttonRead();
-	}
-
-	Serial.println("AFTER button press");
+	waitForAnyButton();
 
 	bool gameRunning = true;
 
+	writeText(" Follow pattern ");
+	setAllPixels(OFF);
+	setAllPixels(GREEN);
+	delay(100);
+	setAllPixels(OFF);
+	delay(1000);
+
 	while (gameRunning)
 	{
-		Serial.print("Turn #");
-		Serial.println(turn);
 		for (int i = 0; i <= turn; i++)
 		{
-			Serial.print("Pattern: " + i);
-			Serial.println(pattern[i]);
 			setPixel(pattern[i], BLUE);
-			delay(1000);
+			delay(200);
 			setAllPixels(OFF);
+			delay(300);
 		}
 
-		setAllPixels(BLUE);
-		delay(500);
-		setAllPixels(OFF);
-
 		for (int i = 0; i <= turn; i++)
 		{
-			Serial.println("Waiting for userinput");
-			buttonRead();
-			while (!stateChanged())
-			{
-				buttonRead();
-			}
+			waitForAnyButton();
 
-			Serial.println("User pressed button");
-
-			Serial.println(pattern[i]);
-
-			String output = "0: ";
-			output.concat(inputFlags[0]);
-			output.concat(" 1: ");
-			output.concat(inputFlags[1]);
-			output.concat(" 2: ");
-			output.concat(inputFlags[2]);
-			output.concat(" 3: ");
-			output.concat(inputFlags[3]);
-
-			int index = pattern[i];
-			Serial.print("Correct: ");
-			Serial.print(pattern[i]);
-			Serial.print("Entered: ");
-			Serial.println(output);
-
-			if (inputFlags[index] != 1)
+			if (inputFlags[pattern[i]] != 1)
 			{
 				gameRunning == false;
+				playerScore = turn;
+				gameOverDisplay();
+				return;
+			}
+			else
+			{
+				setPixel(pattern[i], BLUE);
+				delay(100);
+				setAllPixels(OFF);
 			}
 		}
-
 		turn++;
+		delay(1000);
 	}
-
-	gameOverDisplay();
 }
 
 void gameOverDisplay()
 {
+	Serial.println("GAME OVER!");
+
 	// Flash leds
 	writeText("   Game Over!   ");
-	for (int i = 0; i < 10; i++)
+	for (int i = 0; i < 5; i++)
 	{
 		setAllPixels(RED);
-		delay(100);
+		delay(200);
 	}
 
 	// Check if highscore
 	if (playerScore > getValue(savedHighscores[2], ':', 1).toInt())
 	{
 		enterNameDisplay();
+		return;
 	}
-
-	lcd.clear();
-	lcd.print("Score: " + playerScore);
-	lcd.print("Press any button");
-	while (!stateChanged())
+	else
 	{
-		buttonRead();
+		lcd.clear();
+		String score = "Score: ";
+		score.concat(playerScore);
+		lcd.print(score);
+		lcd.setCursor(0, 1);
+		lcd.print("Press any button");
+		waitForAnyButton();
 	}
-
 	state = startMenu;
 }
 
@@ -379,14 +362,9 @@ void enterNameDisplay()
 	lcd.print("Press button");
 	lcd.setCursor(0, 1);
 	lcd.print("to enter name");
-
-	while (!stateChanged())
-	{
-		buttonRead();
-	}
+	waitForAnyButton();
 
 	setAllPixels(OFF);
-
 	while (name.length() <= 10)
 	{
 		if (stateChanged())
@@ -406,16 +384,16 @@ void enterNameDisplay()
 
 		buttonRead();
 
-		// Up button
-		if ((inputFlags[0] == true) && newChar < 90)
-		{
-			newChar++;
-		}
-
 		// Down button
-		if ((inputFlags[1] == true) && newChar > 48)
+		if ((inputFlags[0] == true) && newChar > 48)
 		{
 			newChar--;
+		}
+
+		// Up button
+		if ((inputFlags[1] == true) && newChar < 90)
+		{
+			newChar++;
 		}
 
 		// Check button
@@ -434,7 +412,6 @@ void enterNameDisplay()
 	String newHighscoreString = name;
 	newHighscoreString.concat(":");
 	newHighscoreString.concat(playerScore);
-
 	addScore(newHighscoreString);
 
 	state = highscore;
@@ -451,6 +428,8 @@ void addScore(String newScore)
 		lcd.print("Press red button");
 
 		waitForButtonPressed(3);
+		state = startMenu;
+		mainMenu();
 	}
 
 	sortHighscores();
@@ -517,6 +496,15 @@ void waitForButtonPressed(int buttonIndex)
 	}
 }
 
+void waitForAnyButton()
+{
+	buttonRead();
+	while (!stateChanged())
+	{
+		buttonRead();
+	}
+}
+
 void setPixel(int pixel, ColorSelection color)
 {
 	if (color == RED)
@@ -548,9 +536,7 @@ void setAllPixels(ColorSelection color)
 
 void saveHighScores(int addrOffset, const String &strToWrite)
 {
-	Serial.println("Inside save highscores");
 	byte len = strToWrite.length();
-	Serial.println("length of string = " + (String)len);
 	EEPROM.write(addrOffset, len);
 	for (int i = 0; i < len; i++)
 	{
@@ -560,9 +546,7 @@ void saveHighScores(int addrOffset, const String &strToWrite)
 
 String loadHighScores(int addrOffset)
 {
-	Serial.println("Inside loadHigscores");
 	int newStrLen = EEPROM.read(addrOffset);
-	Serial.println("length specified in eeprom = " + (String)newStrLen);
 	char data[newStrLen + 1];
 	for (int i = 0; i < newStrLen; i++)
 	{
