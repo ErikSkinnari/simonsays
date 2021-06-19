@@ -1,7 +1,7 @@
 {
-    "board": "arduino:avr:nano",
-    "configuration": "cpu=atmega328old",
-    "port": "COM3",
-    "sketch": "Simon_ButtonAndRGBTest.ino",
-    "programmer": "AVRISP mkII"
+    "board": "arduino:avr:pro",
+    "port": "COM8",
+    "sketch": "simonsays.ino",
+    "programmer": "arduino:parallel",
+    "configuration": "cpu=16MHzatmega328"
 }
